@@ -567,7 +567,7 @@ namespace WindowsGSM
             Process.Start(e.Uri.AbsoluteUri);
         }
 
-        private async void ImportPlugin_Click(object sender, RoutedEventArgs e) 
+        private async void ImportPlugin_Click(object sender, RoutedEventArgs e)
         {
             // If a server is installing or import => return
             if (progressbar_InstallProgress.IsIndeterminate || progressbar_ImportProgress.IsIndeterminate)
@@ -900,7 +900,7 @@ namespace WindowsGSM
 
         public int GetActivePlayers()
         {
-            return ServerGrid.Items.Cast<ServerTable>().Where(s => s.Maxplayers != null && s.Maxplayers.Contains('/')).Sum(s => int.TryParse(s.Maxplayers.Split('/')[0], out int count) ? count : 0 );
+            return ServerGrid.Items.Cast<ServerTable>().Where(s => s.Maxplayers != null && s.Maxplayers.Contains('/')).Sum(s => int.TryParse(s.Maxplayers.Split('/')[0], out int count) ? count : 0);
         }
 
         private void Refresh_DashBoard_LiveChart()
@@ -2074,6 +2074,18 @@ namespace WindowsGSM
 
             await Task.Delay(1000);
 
+            if (GetServerMetadata(server.ID).BackupOnStart)
+            {
+                Log(server.ID, "Action: Backup on Restart");
+                await GameServer_Backup(server, " | Backup on Start");
+            }
+
+            if (GetServerMetadata(server.ID).UpdateOnStart)
+            {
+                Log(server.ID, "Action: Update on Restart");
+                await GameServer_Update(server, " | Update on Restart");
+            }
+
             var gameServer = await Server_BeginStart(server);
             if (gameServer == null)
             {
@@ -2527,6 +2539,8 @@ namespace WindowsGSM
             //Save the process of game server
             Process p = GetServerMetadata(server.ID).Process;
 
+            dynamic gameServer = GameServer.Data.Class.Get(server.Game, new ServerConfig(server.ID), PluginsList);
+
             while (p != null && !p.HasExited)
             {
                 //If not enable return
@@ -2572,7 +2586,18 @@ namespace WindowsGSM
                         SetServerStatus(server, "Restarting");
 
                         await Server_BeginStop(server, p);
-                        var gameServer = await Server_BeginStart(server);
+
+                        //Update Server if update on Start is enabled
+                        if (GetServerMetadata(server.ID).UpdateOnStart)
+                        {
+                            _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                            SetServerStatus(server, "Stopped");
+
+                            Log(server.ID, "Action: Update on Restart");
+                            await GameServer_Update(server, " | Update on Restart");
+                        }
+
+                        await Server_BeginStart(server);
                         if (gameServer == null) { return; }
 
                         _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Started;

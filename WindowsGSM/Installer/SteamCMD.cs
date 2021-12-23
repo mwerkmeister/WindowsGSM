@@ -32,7 +32,7 @@ namespace WindowsGSM.Installer
             Directory.CreateDirectory(_installPath);
             var exePath = Path.Combine(_installPath, _exeFile);
             if (File.Exists(exePath)) { return true; }
-            
+
             try
             {
                 var zipPath = Path.Combine(_installPath, "steamcmd.zip");
@@ -80,7 +80,7 @@ namespace WindowsGSM.Installer
                         {
                             steamUser = keyvalue[1].Trim('\"');
                         }
-                        else if(keyvalue[0] == "steamPass")
+                        else if (keyvalue[0] == "steamPass")
                         {
                             steamPass = keyvalue[1].Trim('\"');
                         }
@@ -101,7 +101,7 @@ namespace WindowsGSM.Installer
             }
 
             _param += $" +force_install_dir \"{installDir}\"" + (string.IsNullOrWhiteSpace(modName) ? string.Empty : $" +app_set_config 90 mod {modName}") + $" +app_update {appId}" + (validate ? " validate" : "");
-            
+
             if (appId == "90")
             {
                 //Install 4 more times if hlds.exe
@@ -384,7 +384,7 @@ namespace WindowsGSM.Installer
             return matches[0].Groups[1].Value;
         }
 
-        public async Task<string> GetRemoteBuild(string appId)
+        public async Task<string> GetRemoteBuild(string appId, bool loginAnonymous = true)
         {
             string exePath = Path.Combine(_installPath, "steamcmd.exe");
             if (!File.Exists(exePath))
@@ -395,6 +395,20 @@ namespace WindowsGSM.Installer
                     Error = "Fail to download steamcmd.exe";
                     return string.Empty;
                 }
+            }
+
+            var LoginUser = new StringBuilder();
+
+            // Set up login parameter
+            if (loginAnonymous)
+            {
+                LoginUser.Append("anonymous");
+            }
+            else
+            {
+                var (username, password) = GetSteamUsernamePassword();
+                if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) { return null; }
+                LoginUser.Append($"\"{username}\" \"{password}\"");
             }
 
             WindowsFirewall firewall = new WindowsFirewall("steamcmd.exe", exePath);
@@ -427,7 +441,7 @@ namespace WindowsGSM.Installer
                 {
                     FileName = exePath,
                     //Sometimes it fails to get if appID < 90
-                    Arguments = $"+login anonymous +app_info_update 1 +app_info_print {appId} +app_info_print {appId} +app_info_print {appId} +app_info_print {appId} +quit",
+                    Arguments = $"+login {LoginUser} +app_info_update 1 +app_info_print {appId} +app_info_print {appId} +app_info_print {appId} +app_info_print {appId} +quit",
                     WindowStyle = ProcessWindowStyle.Minimized,
                     CreateNoWindow = true,
                     UseShellExecute = false,
