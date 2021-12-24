@@ -2074,15 +2074,21 @@ namespace WindowsGSM
 
             await Task.Delay(1000);
 
+            //Backup Server if "Backup on Start" is enabled
             if (GetServerMetadata(server.ID).BackupOnStart)
             {
-                Log(server.ID, "Action: Backup on Restart");
+                // ugly --> set status to "Stopped" because of status validation in Backup, but it works...
+                _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                SetServerStatus(server, "Stopped");
                 await GameServer_Backup(server, " | Backup on Start");
             }
-
+            
+            //Update Server if "Update on Start" is enabled
             if (GetServerMetadata(server.ID).UpdateOnStart)
             {
-                Log(server.ID, "Action: Update on Restart");
+                // ugly --> set status to "Stopped" because of status validation in Update, but it works...
+                _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                SetServerStatus(server, "Stopped");
                 await GameServer_Update(server, " | Update on Restart");
             }
 
@@ -2587,13 +2593,21 @@ namespace WindowsGSM
 
                         await Server_BeginStop(server, p);
 
-                        //Update Server if update on Start is enabled
-                        if (GetServerMetadata(server.ID).UpdateOnStart)
+                        //Backup Server if "Backup on Start" is enabled
+                        if (GetServerMetadata(server.ID).BackupOnStart)
                         {
+                            // ugly --> set status to "Stopped" because of status validation in Backup, but it works...
                             _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
                             SetServerStatus(server, "Stopped");
+                            await GameServer_Backup(server, " | Backup on Start");
+                        }
 
-                            Log(server.ID, "Action: Update on Restart");
+                        //Update Server if "Update on Start" is enabled
+                        if (GetServerMetadata(server.ID).UpdateOnStart)
+                        {
+                            // ugly --> set status to "Stopped" because of status validation in Update, but it works...
+                            _serverMetadata[int.Parse(server.ID)].ServerStatus = ServerStatus.Stopped;
+                            SetServerStatus(server, "Stopped");
                             await GameServer_Update(server, " | Update on Restart");
                         }
 
